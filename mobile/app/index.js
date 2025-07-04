@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef,useContext } from 'react';
 import {
   View,
   Text,
@@ -15,11 +15,15 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import LogoImage from '../assets/images/logo.png';
+import Navbar from '../components/Navbar';  // adjust path if needed
+import { AuthContext } from './context/AuthContext'; // your context path
+
 
 const { width } = Dimensions.get('window');
 
 const HomeScreen = () => {
   const router = useRouter();
+  const { user } = useContext(AuthContext);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const [showDropdown, setShowDropdown] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -69,51 +73,8 @@ const dropdownAnim = useRef(new Animated.Value(0)).current;
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Navbar */}
-      <View style={styles.navbar}>
-        <Image source={LogoImage} style={styles.logoImage} resizeMode="contain" />
-        <View style={styles.dropdownContainer}>
-          <TouchableOpacity onPress={() => setShowDropdown(!showDropdown)}>
-            <View style={styles.menuWrapper}>
-            <Ionicons name="menu" size={24} color="#1a1a2e" />
-            </View>
-          </TouchableOpacity>
-
-          {/* Animated dropdown */}
-          <Animated.View
-            style={[
-              styles.dropdown,
-              {
-                opacity: dropdownAnim,
-                transform: [
-                  {
-                    translateY: dropdownAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-10, 0], // slide down effect
-                    }),
-                  },
-                ],
-                // Make non-interactive and invisible when hidden
-                pointerEvents: showDropdown ? 'auto' : 'none',
-              },
-            ]}
-          >
-            <TouchableOpacity onPress={() => { setShowDropdown(false); router.push('/contact'); }}>
-              <Text style={styles.dropdownItem}>Contact Us</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setShowDropdown(false); router.push('/news'); }}>
-              <Text style={styles.dropdownItem}>News</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setShowDropdown(false); router.push('/login'); }}>
-              <Text style={styles.dropdownItem}>Login</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={() => { setShowDropdown(false); router.push('/signup'); }}>
-              <Text style={styles.dropdownItem}>Signup</Text>
-            </TouchableOpacity>
-          </Animated.View>
-        </View>
-      </View>
-
+      <Navbar user={user} />
+  
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.sectionTitle}>Categories</Text>
         <View style={styles.cardGrid}>
@@ -128,41 +89,40 @@ const dropdownAnim = useRef(new Animated.Value(0)).current;
             </TouchableOpacity>
           ))}
         </View>
-
+  
         <TouchableOpacity onPress={toggleCollapse} style={{ flexDirection: 'row', alignItems: 'center' }}>
-  <Text style={styles.sectionTitle}>Why Choose Us? </Text>
-  <Ionicons 
-    name={isCollapsed ? 'chevron-down' : 'chevron-up'} 
-    size={20} 
-    color="#333" 
-  />
-</TouchableOpacity>
-
-
-<Animated.View style={{ height: collapseHeight, overflow: 'hidden' }}>
-  <View style={styles.featuresList}>
-    <View style={styles.featureItem}>
-      <MaterialIcons name="verified" size={24} color="#4CAF50" />
-      <Text style={styles.featureText}>Trusted Vendors</Text>
-    </View>
-    <View style={styles.featureItem}>
-      <MaterialIcons name="security" size={24} color="#2196F3" />
-      <Text style={styles.featureText}>Secure Payments</Text>
-    </View>
-    <View style={styles.featureItem}>
-      <MaterialIcons name="event-available" size={24} color="#FFC107" />
-      <Text style={styles.featureText}>Wide Event Coverage</Text>
-    </View>
-  </View>
-</Animated.View>
-
+          <Text style={styles.sectionTitle}>Why Choose Us? </Text>
+          <Ionicons 
+            name={isCollapsed ? 'chevron-down' : 'chevron-up'} 
+            size={20} 
+            color="#333" 
+          />
+        </TouchableOpacity>
+  
+        <Animated.View style={{ height: collapseHeight, overflow: 'hidden' }}>
+          <View style={styles.featuresList}>
+            <View style={styles.featureItem}>
+              <MaterialIcons name="verified" size={24} color="#4CAF50" />
+              <Text style={styles.featureText}>Trusted Vendors</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <MaterialIcons name="security" size={24} color="#2196F3" />
+              <Text style={styles.featureText}>Secure Payments</Text>
+            </View>
+            <View style={styles.featureItem}>
+              <MaterialIcons name="event-available" size={24} color="#FFC107" />
+              <Text style={styles.featureText}>Wide Event Coverage</Text>
+            </View>
+          </View>
+        </Animated.View>
       </ScrollView>
-
+  
       <View style={styles.footer}>
         <Text style={styles.footerText}>© 2025 Events App. All rights reserved.</Text>
       </View>
     </SafeAreaView>
   );
+  
 };
 
 export default HomeScreen;
