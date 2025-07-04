@@ -1,3 +1,6 @@
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs([]); // Show **all warnings** (don't ignore anything)
+
 import React, { useState, useEffect, useRef,useContext } from 'react';
 import {
   View,

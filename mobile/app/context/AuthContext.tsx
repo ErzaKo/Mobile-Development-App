@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
 interface User {
   id: number;
@@ -43,8 +44,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     loadStorage();
   }, []);
-  const BASE_URL = 'http://192.168.1.150:5002/api/users';
-  // Login function - calls your backend /login
+  const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
+    // Login function - calls your backend /login
   const login = async (email: string, password: string) => {
     setLoading(true);
     try {

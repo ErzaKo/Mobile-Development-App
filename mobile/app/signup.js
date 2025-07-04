@@ -73,8 +73,12 @@ export default function Signup() {
             <Text style={styles.buttonText}>Sign Up</Text>
           </TouchableOpacity>
           <Text style={styles.footerText}>
-  Already have an account? <Text style={styles.link} onPress={() => router.push('/login')}>Login</Text>
+  Already have an account?{' '}
+  <Text style={styles.link} onPress={() => router.push('/login')}>
+    Login
+  </Text>
 </Text>
+
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
