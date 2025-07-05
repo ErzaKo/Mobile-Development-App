@@ -1,6 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { AuthContext } from './context/AuthContext'; // adjust path if needed
 import { useRouter } from 'expo-router';
+
 import {
   View,
   Text,
@@ -72,12 +73,13 @@ export default function Signup() {
           <TouchableOpacity style={styles.button} onPress={handleSignup}>
             <Text style={styles.buttonText}>Sign Up</Text>
           </TouchableOpacity>
-          <Text style={styles.footerText}>
-  Already have an account?{' '}
+          <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+  <Text style={styles.footerText}>Already have an account? </Text>
   <Text style={styles.link} onPress={() => router.push('/login')}>
     Login
   </Text>
-</Text>
+</View>
+
 
         </View>
       </KeyboardAvoidingView>

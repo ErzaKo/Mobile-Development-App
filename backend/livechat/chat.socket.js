@@ -1,126 +1,120 @@
-const ChatMessage = require('./chat.model'); // mongoose model with senderId, receiverId, message, timestamp
-const jwt = require('jsonwebtoken');
-const User = require('../users/user.model'); // Sequelize User model for PostgreSQL
+// livechat/chat.socket.js
+const ChatRoom = require('./chat_rooms.model');
+const ChatRoomParticipant = require('./chat_room_participants');
+const ChatMessage = require('./chat_messages.model');
+const ChatMessageMongo = require('./chatMessage.mongo');
 
-const userSockets = new Map();    // userId (Number) -> socket.id
-const adminSockets = new Set();   // Set of admin socket IDs
-const activeUsers = new Set();    // Store userIds of users who've sent messages
+const { findOrCreateRoomForUsers } = require('./chat.controller');
+const userSocketMap = {}; // Map to track user_id to socket.id
 
-module.exports = function (io) {
-  // Middleware to verify token
-  io.use((socket, next) => {
-    const token = socket.handshake.query.token;
-    if (!token) return next(new Error('Authentication error: No token'));
+module.exports = (io) => {
+  io.on('connection', (socket) => {
+    console.log('🟢 New client connected:', socket.id);
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
-      if (err) return next(new Error('Authentication error: Invalid token'));
-
-      socket.user = decoded; // { userId, name, role }
-      next();
+    socket.on('registerUser', ({ user_id, userName, userRole }) => {
+      socket.user_id = user_id;
+      socket.userName = userName;
+      socket.userRole = userRole;
+      userSocketMap[user_id] = socket.id;
+    
+      console.log(`✅ Registered user ${user_id} (${userName} - ${userRole}) with socket ${socket.id}`);
     });
-  });
+    
 
-  // Utility to send updated user list with names to admins
-  async function sendUpdatedUserListToAdmins() {
-    try {
-      const userIds = Array.from(activeUsers);
-      // Fetch users from PostgreSQL by IDs
-      const users = await User.findAll({
-        where: { id: userIds },
-        attributes: ['id', 'name'],
-      });
+    socket.on('joinRoom', async ({ roomId }) => {
+      socket.join(roomId);
+      console.log(`👥 Socket ${socket.id} manually joined room ${roomId}`);
+    });
 
-      // Map userId -> name
-      const userList = users.map(u => ({ id: u.id, name: u.name }));
-
-      // Send updated list to all connected admins
-      adminSockets.forEach(adminSocketId => {
-        io.to(adminSocketId).emit('userList', userList);
-      });
-    } catch (err) {
-      console.error('Error sending updated user list:', err);
-    }
-  }
-
-  io.on('connection', async (socket) => {
-    const { userId, name, role } = socket.user;
-    console.log(`✅ ${role} connected: ${name} (${userId})`);
-
-    if (role === 'admin') {
-      adminSockets.add(socket.id);
-      console.log('🧑‍💼 Admin connected:', socket.id);
-
-      // On admin connection, send current active users with their latest names
-      await sendUpdatedUserListToAdmins();
-    } else {
-      userSockets.set(userId, socket.id);
-      console.log(`👤 User ${name} (ID: ${userId}) socket set:`, socket.id);
-    }
-
-    // Handle message send
-    socket.on('chatMessage', async (msg) => {
-      /*
-       msg = {
-         senderId: Number,
-         receiverId: Number,
-         message: String
-       }
-      */
-      const { senderId, receiverId, message } = msg;
-
-      // Save to MongoDB with proper schema keys
+    socket.on('sendMessage', async ({ sender_id, receiver_id, message, chatRoomId, senderName, senderRole }) => {    
       try {
-        const newMessage = new ChatMessage({
-          senderId,
-          receiverId,
+        const fromUserId = sender_id || socket.user_id;
+        const toUserId = receiver_id;
+    
+        if (!fromUserId || !toUserId || !message) {
+          console.error("❌ Missing required data:", { fromUserId, toUserId, message });
+          return;
+        }
+    
+        // ✅ Use provided chatRoomId, or fallback to finding/creating one
+        let roomIdStr = chatRoomId;
+        let room = null;
+    
+        if (!roomIdStr) {
+          room = await findOrCreateRoomForUsers(fromUserId, toUserId);
+          if (!room) {
+            console.error("No room found or created for users", fromUserId, toUserId);
+            return;
+          }
+          roomIdStr = room.id.toString();
+        } else {
+          room = await ChatRoom.findByPk(chatRoomId);
+          if (!room) {
+            console.error("❌ Provided chatRoomId does not exist:", chatRoomId);
+            return;
+          }
+        }
+    
+        // 🔗 Join the room
+        socket.join(roomIdStr);
+        console.log(`🚪 Sender (${fromUserId}) joined room ${roomIdStr}`);
+    
+        // 📡 Receiver join
+        const receiverSocketId = userSocketMap[toUserId];
+        const receiverSocket = io.sockets.sockets.get(receiverSocketId);
+        if (receiverSocket) {
+          receiverSocket.join(roomIdStr);
+          console.log(`🚪 Receiver (${toUserId}) is online and joined room ${roomIdStr}`);
+        } else {
+          console.log(`❗ Receiver (${toUserId}) is not online or not registered.`);
+        }
+    
+        const socketsInRoom = await io.in(roomIdStr).fetchSockets();
+        const participants = socketsInRoom.map(s => s.user_id || s.id);
+        console.log(`👥 Sockets currently in room ${roomIdStr}:`, participants);
+    
+        // 📝 Save messages
+        const mongoMessage = await ChatMessageMongo.create({
+          room_id: room.id,
+          sender_id: fromUserId,
           message,
         });
-        await newMessage.save();
-        console.log('✅ Message saved to MongoDB:', newMessage);
-
-        // Track active user for updating user list
-        if (role !== 'admin') {
-          activeUsers.add(senderId);
-          await sendUpdatedUserListToAdmins();
-        }
-
-        // Emit the message to the correct recipient(s)
-        if (role === 'admin') {
-          // Admin sending message to a user
-          const targetSocketId = userSockets.get(receiverId);
-          if (targetSocketId) {
-            io.to(targetSocketId).emit('chatMessage', newMessage);
-            console.log(`➡️ Admin sent message to user ID ${receiverId}`);
-          } else {
-            console.warn(`⚠️ User ID ${receiverId} not connected`);
-          }
-        } else {
-          // User sending message to admin(s)
-          // Notify all connected admins
-          adminSockets.forEach(adminSocketId => {
-            io.to(adminSocketId).emit('chatMessage', newMessage);
-          });
-        }
-      } catch (err) {
-        console.error('❌ Error saving message:', err.message);
+        console.log(`🧾 Saved message to MongoDB with ID ${mongoMessage._id}`);
+    
+        const pgMessage = await ChatMessage.create({
+          room_id: room.id,
+          sender_id: fromUserId,
+          content: message,
+          mongo_message_id: mongoMessage._id.toString(),
+        });
+        console.log(`🧾 Saved message to PostgreSQL with ID ${pgMessage.id}`);
+    
+        // 🚀 Emit message
+        io.to(roomIdStr).emit('newMessage', {
+          chatRoomId: roomIdStr,
+          senderId: fromUserId.toString(),
+          senderName,        // ✅ use from payload, not socket.userName
+          senderRole,        // ✅ use from payload, not socket.userRole
+          message,
+          createdAt: pgMessage.created_at,
+        });
+            
+        console.log(`📤 Emitted newMessage to room ${roomIdStr}`);
+      } catch (error) {
+        console.error('❌ Error sending message:', error);
       }
     });
-
-    // Allow admin to request updated user list manually
-    socket.on('getUserList', async () => {
-      if (role === 'admin') {
-        await sendUpdatedUserListToAdmins();
-      }
-    });
-
-    // Cleanup on disconnect
+    
+    
     socket.on('disconnect', () => {
-      if (role === 'admin') {
-        adminSockets.delete(socket.id);
-        console.log('❌ Admin disconnected:', socket.id);
-      } else {
-        userSockets.delete(userId);
-        console.log(`❌ User ${name} (ID: ${userId}) disconnected`);
+      console.log('🔴 Client disconnected:', socket.id);
+
+      for (const [userId, sId] of Object.entries(userSocketMap)) {
+        if (sId === socket.id) {
+          delete userSocketMap[userId];
+          console.log(`🧹 Removed user ${userId} from socket map`);
+          break;
+        }
       }
     });
   });

@@ -113,5 +113,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </AuthContext.Provider>
   );
 };
+import { useContext } from 'react';
+
+export const useAuth = () => useContext(AuthContext); // ✅ named export
+
 export default AuthProvider;
 
