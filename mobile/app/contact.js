@@ -1,28 +1,40 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet } from 'react-native';
+import ContactForm from '../components/ContactForm'; // kontrollo që rruga është e saktë
 
 export default function Contact() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Contact Us</Text>
-      <Text style={styles.text}>
-        You can reach us at: support@eventsapp.com
-      </Text>
-      <Text style={styles.text}>
-        Phone: +123 456 789
-      </Text>
-    </View>
+    <SafeAreaView style={styles.safeArea}>
+      <Text style={styles.title}>Na Kontaktoni</Text>
+
+      <View style={styles.infoContainer}>
+        <Text style={styles.text}>You can reach us at: support@eventsapp.com</Text>
+        <Text style={styles.text}>Phone: +123 456 789</Text>
+      </View>
+
+      <ContactForm />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20,
+  safeArea: {
+    flex: 1,
+    padding: 20,
+    backgroundColor: '#fff',
   },
   title: {
-    fontSize: 24, marginBottom: 10,
+    fontSize: 24,
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  infoContainer: {
+    marginBottom: 20,
+    alignItems: 'center',
   },
   text: {
-    fontSize: 16, textAlign: 'center', marginTop: 5,
+    fontSize: 16,
+    marginVertical: 5,
+    textAlign: 'center',
   },
 });

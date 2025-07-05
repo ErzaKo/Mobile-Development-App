@@ -15,6 +15,7 @@ const eventRoutes = require('./events/event.routes');
 const questionRoutes = require('./questions/routes/question.routes');
 const chatRoutes = require('./livechat/chat.routes.js');
 const categoryRoutes = require("./categories/category.routes");
+const contactRoutes = require('./contacts/contact.routes.js');
 
 const PORT = process.env.PORT || 5002;
 
@@ -44,6 +45,7 @@ app.use('/api/events', eventRoutes);
 app.use('/api/questions', questionRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use('/api/livechat', chatRoutes);
+app.use('/api/contacts', contactRoutes); 
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
