@@ -1,4 +1,5 @@
 const Event = require('./event.model');
+const { Op } = require('sequelize');
 
 // Create Event
 const createEvent = async (req, res) => {
@@ -32,6 +33,50 @@ const getAllEvents = async (req, res) => {
     res.status(200).json({ events });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching events', error: error.message });
+  }
+};
+
+// Search Events
+const searchEvents = async (req, res) => {
+  try {
+    const { query } = req.query;
+    
+    console.log('Search query received:', query);
+    
+    if (!query || query.trim() === '') {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    const searchQuery = query.trim();
+    console.log('Searching for:', searchQuery);
+
+    const events = await Event.findAll({
+      where: {
+        [Op.or]: [
+          { name: { [Op.iLike]: `%${searchQuery}%` } },
+          { location: { [Op.iLike]: `%${searchQuery}%` } }
+        ]
+      }
+    });
+
+    console.log('Search results found:', events.length);
+    res.status(200).json({ events });
+  } catch (error) {
+    console.error('Search error:', error);
+    res.status(500).json({ message: 'Error searching events', error: error.message });
+  }
+};
+
+// Get Events by Category
+const getEventsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const events = await Event.findAll({
+      where: { categoryId: categoryId }
+    });
+    res.status(200).json({ events });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching events by category', error: error.message });
   }
 };
 
@@ -98,6 +143,8 @@ const deleteEvent = async (req, res) => {
 module.exports = {
   createEvent,
   getAllEvents,
+  searchEvents,
+  getEventsByCategory,
   getEventById,
   updateEvent,
   deleteEvent,

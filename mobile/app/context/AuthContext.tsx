@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
     loadStorage();
   }, []);
-  const BASE_URL = Constants.expoConfig?.extra?.BASE_URL;
+  const BASE_URL = Constants.expoConfig?.extra?.BASE_URL || 'http://192.168.0.107:5002/api';
     // Login function - calls your backend /login
   const login = async (email: string, password: string) => {
     setLoading(true);
