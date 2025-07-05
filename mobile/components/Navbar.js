@@ -61,7 +61,7 @@
                 <Text style={styles.dropdownItem}>Users</Text>
                 </TouchableOpacity>
             )}
-                <TouchableOpacity onPress={() => { setShowDropdown(false); router.push('/contact'); }}>
+                <TouchableOpacity onPress={() => { setShowDropdown(false); router.push('/(tabs)/contact'); }}>
                 <Text style={styles.dropdownItem}>Contact Us</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => { setShowDropdown(false); router.push('/news'); }}>

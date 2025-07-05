@@ -2,15 +2,16 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
+    "moduleResolution": "bundler", // ✅ force override
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./*"]
     }
   },
   "include": [
+    "app/**/*",
     "**/*.ts",
     "**/*.tsx",
-    "app/createEvent.js"
+    "**/*.js",
+    "expo-router.d.ts"
   ]
 }
